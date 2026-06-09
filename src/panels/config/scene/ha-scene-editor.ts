@@ -526,10 +526,11 @@ export class HaSceneEditor extends PreventUnsavedMixin(
                             this.hass,
                             entityStateObj
                           );
-                          const domainName = domainToName(
-                            this.hass.localize,
-                            computeDomain(entityId)
-                          );
+                          const platform =
+                            entityRegistryLookup[entityId]?.platform;
+                          const integrationName = platform
+                            ? domainToName(this.hass.localize, platform)
+                            : undefined;
                           return html`
                             <ha-list-item
                               class="entity"
@@ -558,7 +559,11 @@ export class HaSceneEditor extends PreventUnsavedMixin(
                                   >`
                                 : nothing}
                               <div slot="meta">
-                                <span class="domain">${domainName}</span>
+                                ${integrationName
+                                  ? html`<span class="domain"
+                                      >${integrationName}</span
+                                    >`
+                                  : nothing}
                                 <ha-icon-button
                                   .path=${mdiDelete}
                                   .entityId=${entityId}

@@ -264,10 +264,10 @@ export class HaEntityPicker extends LitElement {
               </span>
             `
           : nothing}
-        ${item.domain_name && !showEntityId
+        ${item.integration_name && !showEntityId
           ? html`
               <div slot="trailing-supporting-text" class="domain">
-                ${item.domain_name}
+                ${item.integration_name}
               </div>
             `
           : nothing}

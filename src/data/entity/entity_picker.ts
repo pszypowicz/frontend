@@ -11,6 +11,7 @@ import type { HaEntityPickerEntityFilterFunc } from "./entity";
 
 export interface EntityComboBoxItem extends PickerComboBoxItem {
   domain_name?: string;
+  integration_name?: string;
   stateObj?: HassEntity;
 }
 
@@ -33,6 +34,10 @@ export const entityComboBoxKeys: FuseWeightedKey[] = [
   },
   {
     name: "search_labels.domainName",
+    weight: 6,
+  },
+  {
+    name: "search_labels.integrationName",
     weight: 6,
   },
   {
@@ -112,6 +117,11 @@ export const getEntities = (
 
     const domainName = domainToName(hass.localize, computeDomain(entityId));
 
+    const platform = hass.entities[entityId]?.platform;
+    const integrationName = platform
+      ? domainToName(hass.localize, platform)
+      : undefined;
+
     const isRTL = computeRTL(
       hass.language,
       hass.translationMetadata.translations
@@ -127,12 +137,14 @@ export const getEntities = (
       primary: primary,
       secondary: secondary,
       domain_name: domainName,
+      integration_name: integrationName,
       sorting_label: [primary, secondary].filter(Boolean).join("_"),
       search_labels: {
         entityName: entityName || null,
         deviceName: deviceName || null,
         areaName: areaName || null,
         domainName: domainName || null,
+        integrationName: integrationName || null,
         friendlyName: friendlyName || null,
         entityId: entityId,
       },

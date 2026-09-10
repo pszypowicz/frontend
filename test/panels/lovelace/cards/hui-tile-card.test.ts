@@ -97,6 +97,29 @@ describe("hui-tile-card getCardSize", () => {
       }).getCardSize()
     ).toBe(4);
   });
+
+  it("ignores inline mode when the state takes the name row", () => {
+    // an inline state forces bottom positioning, so all features are stacked
+    expect(
+      makeCard({
+        state_position: "inline",
+        features_position: "inline",
+        features: features(2),
+      }).getCardSize()
+    ).toBe(3);
+  });
+
+  it("keeps inline mode when the state is hidden", () => {
+    // hide_state drops the state, so the features keep the name row
+    expect(
+      makeCard({
+        hide_state: true,
+        state_position: "inline",
+        features_position: "inline",
+        features: features(2),
+      }).getCardSize()
+    ).toBe(2);
+  });
 });
 
 describe("hui-tile-card getGridOptions", () => {
@@ -151,6 +174,22 @@ describe("hui-tile-card getGridOptions", () => {
       rows: 1,
       min_columns: 12,
       min_rows: 1,
+    });
+  });
+
+  it("stacks all features and stays 6 columns wide when the state is inline", () => {
+    // an inline state forces bottom positioning, so the tile never needs 12 columns
+    expect(
+      gridOptions({
+        state_position: "inline",
+        features_position: "inline",
+        features: features(2),
+      })
+    ).toEqual({
+      columns: 6,
+      rows: 3,
+      min_columns: 6,
+      min_rows: 3,
     });
   });
 

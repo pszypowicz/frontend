@@ -75,6 +75,7 @@ export class HaTileContainer extends LitElement {
           <div class="content ${classMap(contentClasses)}">
             <slot name="icon"></slot>
             <slot name="info" id="info"></slot>
+            <slot name="state"></slot>
           </div>
           <slot name="features-inline"></slot>
         </div>
@@ -171,6 +172,20 @@ export class HaTileContainer extends LitElement {
       min-width: 0;
       transition: background-color 180ms ease-in-out;
       box-sizing: border-box;
+    }
+    ::slotted([slot="state"]) {
+      position: relative;
+      /* keep the natural width so the info block is the one that shrinks */
+      flex: none;
+      max-width: 50%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: end;
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-normal);
+      line-height: var(--ha-line-height-condensed);
+      color: var(--primary-text-color);
     }
     ::slotted([slot="features"]) {
       padding: 0 var(--ha-space-3) var(--ha-space-3) var(--ha-space-3);

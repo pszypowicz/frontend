@@ -53,6 +53,7 @@ const cardConfigStruct = assign(
     show_entity_picture: optional(boolean()),
     hide_state: optional(boolean()),
     state_content: optional(union([string(), array(string())])),
+    state_position: optional(enums(["secondary", "inline"])),
     vertical: optional(boolean()),
     tap_action: optional(actionConfigStruct),
     hold_action: optional(actionConfigStruct),
@@ -92,7 +93,9 @@ export class HuiTileCardEditor
     (
       localize: LocalizeFunc,
       entityId: string | undefined,
-      showTimeFormat: boolean
+      showTimeFormat: boolean,
+      vertical: boolean,
+      inlineState: boolean
     ) =>
       [
         { name: "entity", selector: { entity: {} } },
@@ -163,6 +166,31 @@ export class HuiTileCardEditor
               },
             },
             {
+              name: "state_position",
+              required: true,
+              visible: { field: "hide_state", operator: "not_eq", value: true },
+              selector: {
+                select: {
+                  mode: "box",
+                  options: ["secondary", "inline"].map((value) => ({
+                    label: localize(
+                      `ui.panel.lovelace.editor.card.tile.state_position_options.${value}`
+                    ),
+                    description: localize(
+                      `ui.panel.lovelace.editor.card.tile.state_position_options.${value}_description`
+                    ),
+                    value,
+                    image: {
+                      src: `/static/images/form/tile_state_position_${value}.svg`,
+                      src_dark: `/static/images/form/tile_state_position_${value}_dark.svg`,
+                      flip_rtl: true,
+                    },
+                    disabled: vertical && value === "inline",
+                  })),
+                },
+              },
+            },
+            {
               name: "content_layout",
               required: true,
               selector: {
@@ -178,6 +206,7 @@ export class HuiTileCardEditor
                       src_dark: `/static/images/form/tile_content_layout_${value}_dark.svg`,
                       flip_rtl: true,
                     },
+                    disabled: inlineState && value === "vertical",
                   })),
                 },
               },
@@ -241,7 +270,7 @@ export class HuiTileCardEditor
   );
 
   private _featuresSchema = memoizeOne(
-    (localize: LocalizeFunc, vertical: boolean) =>
+    (localize: LocalizeFunc, vertical: boolean, inlineState: boolean) =>
       [
         {
           name: "features_position",
@@ -262,7 +291,7 @@ export class HuiTileCardEditor
                   src_dark: `/static/images/form/tile_features_position_${value}_dark.svg`,
                   flip_rtl: true,
                 },
-                disabled: vertical && value === "inline",
+                disabled: (vertical || inlineState) && value === "inline",
               })),
             },
           },
@@ -290,19 +319,39 @@ export class HuiTileCardEditor
         this._config.state_content
       );
 
-    const schema = this._schema(this.hass.localize, entityId, showTimeFormat);
-
     const vertical = this._config.vertical ?? false;
-
-    const featuresSchema = this._featuresSchema(this.hass.localize, vertical);
 
     const data = {
       ...this._config,
       content_layout: vertical ? "vertical" : "horizontal",
     };
 
-    // Default features position to bottom and force it to bottom in vertical mode
-    if (!data.features_position || vertical) {
+    // Default the state position to secondary and force it there in vertical mode
+    if (!data.state_position || vertical) {
+      data.state_position = "secondary";
+    }
+
+    // The two positions exclude each other, so each one disables the other in
+    // the editor. Vertical wins, which keeps this flag false in vertical mode.
+    const inlineState = data.state_position === "inline";
+
+    const schema = this._schema(
+      this.hass.localize,
+      entityId,
+      showTimeFormat,
+      vertical,
+      inlineState
+    );
+
+    const featuresSchema = this._featuresSchema(
+      this.hass.localize,
+      vertical,
+      inlineState
+    );
+
+    // Default features position to bottom, and force it to bottom in vertical
+    // mode or when the inline state already owns the name row
+    if (!data.features_position || vertical || inlineState) {
       data.features_position = "bottom";
     }
 
@@ -369,10 +418,16 @@ export class HuiTileCardEditor
 
     if (config.hide_state) {
       delete config.state_content;
+      delete config.state_position;
     }
 
     if (!config.state_content) {
       delete config.state_content;
+    }
+
+    // Keep the default out of the saved config, so existing tiles stay untouched
+    if (config.state_position === "secondary") {
+      delete config.state_position;
     }
 
     // Convert content_layout to vertical
@@ -444,6 +499,7 @@ export class HuiTileCardEditor
       case "show_entity_picture":
       case "hide_state":
       case "state_content":
+      case "state_position":
       case "content_layout":
       case "features_position":
         return this.hass!.localize(
@@ -466,10 +522,32 @@ export class HuiTileCardEditor
         return this.hass!.localize(
           `ui.panel.lovelace.editor.card.tile.${schema.name}_helper`
         );
+      case "state_position":
+        if (this._config?.vertical) {
+          return this.hass!.localize(
+            `ui.panel.lovelace.editor.card.tile.${schema.name}_helper_vertical`
+          );
+        }
+        return undefined;
+      case "content_layout":
+        if (
+          !this._config?.vertical &&
+          this._config?.state_position === "inline"
+        ) {
+          return this.hass!.localize(
+            `ui.panel.lovelace.editor.card.tile.${schema.name}_helper_inline_state`
+          );
+        }
+        return undefined;
       case "features_position":
         if (this._config?.vertical) {
           return this.hass!.localize(
             `ui.panel.lovelace.editor.card.tile.${schema.name}_helper_vertical`
+          );
+        }
+        if (this._config?.state_position === "inline") {
+          return this.hass!.localize(
+            `ui.panel.lovelace.editor.card.tile.${schema.name}_helper_inline_state`
           );
         }
         return undefined;
